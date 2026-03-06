@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recent Activity</title>
+</head>
+<body>
+    <h1>Recent Activity</h1>
+    <ul>
+        {% for activity in activities %}
+            <li>{{ activity }}</li>
+        {% empty %}
+            <li>No recent activity found.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

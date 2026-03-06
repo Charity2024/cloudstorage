@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Storage Analytics</title>
+</head>
+<body>
+    <h1>Storage Analytics</h1>
+    <h3>Monthly Uploads</h3>
+    <ul>
+        {% for count in uploads_per_month %}
+            <li>Upload count: {{ count }}</li>
+        {% endfor %}
+    </ul>
+    
+    <h3>Largest Files</h3>
+    <ul>
+        {% for file in largest_files %}
+            <li>{{ file.name }}: {{ file.size }} bytes</li>
+        {% empty %}
+            <li>No files found.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

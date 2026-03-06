@@ -91,6 +91,9 @@ def upload_to_google_drive(connection, file):
     """Upload file to Google Drive."""
     from .google_drive import upload_file
     
+    if not file.file or not file.file.path:
+        raise Exception("File or file path not available")
+    
     return upload_file(
         connection,
         file.file.path,
@@ -103,6 +106,9 @@ def upload_to_dropbox(connection, file):
     """Upload file to Dropbox."""
     from .dropbox_api import upload_file
     
+    if not file.file or not file.file.path:
+        raise Exception("File or file path not available")
+    
     return upload_file(
         connection,
         file.file.path,
@@ -114,6 +120,9 @@ def upload_to_onedrive(connection, file):
     """Upload file to OneDrive."""
     from .onedrive_api import upload_file
     
+    if not file.file or not file.file.path:
+        raise Exception("File or file path not available")
+    
     return upload_file(
         connection,
         file.file.path,
@@ -124,6 +133,9 @@ def upload_to_onedrive(connection, file):
 def upload_to_mega(connection, file):
     """Upload file to MEGA."""
     from .mega_api import upload_file
+    
+    if not file.file or not file.file.path:
+        raise Exception("File or file path not available")
     
     return upload_file(
         connection,

@@ -127,48 +127,50 @@ def folder_delete(request, pk):
 
 @login_required
 def file_upload(request):
-    """Handle file uploads with optional compression."""
+    """Handle multiple file uploads with optional compression."""
     if request.method == 'POST':
+        form = FileUploadForm(request.user, request.POST, request.FILES)
         files = request.FILES.getlist('file')
         folder_id = request.POST.get('folder')
-        compress = request.POST.get('compress') == 'on'
+        compress = request.POST.get('compress') in ['on', 'true', '1', 'yes']
         
         folder = None
         if folder_id:
             folder = get_object_or_404(Folder, pk=folder_id, owner=request.user)
         
         uploaded_count = 0
-        for uploaded_file in files:
-            # Detect mime type
-            mime_type = get_file_type(uploaded_file.temporary_file_path()) if hasattr(uploaded_file, 'temporary_file_path') else uploaded_file.content_type
+        if files:
+            for uploaded_file in files:
+                try:
+                    mime_type = get_file_type(uploaded_file.temporary_file_path())
+                except (AttributeError, ValueError):
+                    mime_type = uploaded_file.content_type or 'application/octet-stream'
+                
+                file_instance = File(
+                    name=uploaded_file.name,
+                    original_name=uploaded_file.name,
+                    file=uploaded_file,
+                    mime_type=mime_type,
+                    file_size=uploaded_file.size,
+                    folder=folder,
+                    owner=request.user
+                )
+                file_instance.save()
+                
+                # Use direct attribute access instead of getattr
+                if compress and file_instance.file_type == 'image':
+                    compress_file(file_instance)
+                
+                upload_file_to_cloud.delay(file_instance.id)
+                uploaded_count += 1
             
-            file_instance = File(
-                name=uploaded_file.name,
-                original_name=uploaded_file.name,
-                file=uploaded_file,
-                mime_type=mime_type,
-                file_size=uploaded_file.size,
-                folder=folder,
-                owner=request.user
-            )
-            file_instance.save()
-            
-            # Compress if it's an image and compression is enabled
-            if compress and file_instance.file_type == 'image':
-                if compress_file(file_instance):
-                    messages.info(request, f'Image "{file_instance.name}" compressed successfully.')
-            
-            # Trigger cloud upload
-            upload_file_to_cloud.delay(file_instance.id)
-            
-            uploaded_count += 1
-        
-        messages.success(request, f'{uploaded_count} file(s) uploaded successfully!')
-        
+            messages.success(request, f'{uploaded_count} file(s) uploaded successfully!')
+        else:
+            messages.error(request, "No files selected.")
+
         if folder:
             return redirect('storage:folder_detail', pk=folder.pk)
         return redirect('storage:file_list')
-    
     else:
         form = FileUploadForm(request.user)
     
@@ -184,7 +186,7 @@ def file_detail(request, pk):
     context = {
         'file': file,
         'cloud_uploads': cloud_uploads,
-        'download_url': request.build_absolute_uri(file.file.url),
+        'download_url': request.build_absolute_uri(file.file.url) if file.file else "#",
     }
     return render(request, 'storage/file_detail.html', context)
 
@@ -193,6 +195,12 @@ def file_detail(request, pk):
 def file_download(request, pk):
     """Download a file."""
     file = get_object_or_404(File, pk=pk, owner=request.user)
+    
+    if not file.file or not file.file.name:
+        messages.error(request, "File not found or has been deleted.")
+        if file.folder:
+            return redirect('storage:folder_detail', pk=file.folder.pk)
+        return redirect('storage:file_list')
     
     response = FileResponse(file.file, as_attachment=True, filename=file.original_name)
     return response
@@ -208,7 +216,6 @@ def file_delete(request, pk):
         file_name = file.name
         file.delete()
         messages.success(request, f'File "{file_name}" deleted successfully!')
-        
         if folder:
             return redirect('storage:folder_detail', pk=folder.pk)
         return redirect('storage:file_list')
@@ -228,7 +235,9 @@ def file_move(request, pk):
             file.folder = target_folder
             file.save()
             messages.success(request, 'File moved successfully!')
-            return redirect('storage:folder_detail', pk=target_folder.pk) if target_folder else redirect('storage:file_list')
+            if target_folder:
+                return redirect('storage:folder_detail', pk=target_folder.pk)
+            return redirect('storage:file_list')
     else:
         form = FileMoveForm(request.user)
     
@@ -264,19 +273,18 @@ def bulk_upload(request):
             
             uploaded_count = 0
             for uploaded_file in files:
-                mime_type = uploaded_file.content_type or 'application/octet-stream'
-                
                 file_instance = File(
                     name=uploaded_file.name,
                     original_name=uploaded_file.name,
                     file=uploaded_file,
-                    mime_type=mime_type,
+                    mime_type=uploaded_file.content_type or 'application/octet-stream',
                     file_size=uploaded_file.size,
                     folder=folder,
                     owner=request.user
                 )
                 file_instance.save()
                 
+                # Use direct attribute access instead of getattr
                 if auto_compress and file_instance.file_type == 'image':
                     compress_file(file_instance)
                 
@@ -301,7 +309,6 @@ def get_breadcrumbs(folder):
     return breadcrumbs
 
 
-# AJAX endpoints
 @login_required
 @require_POST
 def ajax_upload(request):
@@ -309,25 +316,24 @@ def ajax_upload(request):
     if request.FILES.get('file'):
         uploaded_file = request.FILES['file']
         folder_id = request.POST.get('folder')
-        compress = request.POST.get('compress') == 'true'
+        compress = request.POST.get('compress') in ['true', '1', 'yes', 'on']
         
         folder = None
         if folder_id:
             folder = get_object_or_404(Folder, pk=folder_id, owner=request.user)
         
-        mime_type = uploaded_file.content_type or 'application/octet-stream'
-        
         file_instance = File(
             name=uploaded_file.name,
             original_name=uploaded_file.name,
             file=uploaded_file,
-            mime_type=mime_type,
+            mime_type=uploaded_file.content_type or 'application/octet-stream',
             file_size=uploaded_file.size,
             folder=folder,
             owner=request.user
         )
         file_instance.save()
         
+        # Use direct attribute access instead of getattr
         if compress and file_instance.file_type == 'image':
             compress_file(file_instance)
         
@@ -340,7 +346,6 @@ def ajax_upload(request):
             'file_size': format_file_size(file_instance.file_size),
             'file_type': file_instance.file_type
         })
-    
     return JsonResponse({'success': False, 'error': 'No file provided'})
 
 
@@ -348,10 +353,7 @@ def ajax_upload(request):
 def ajax_file_search(request):
     """AJAX endpoint for file search."""
     query = request.GET.get('q', '')
-    
-    files = File.objects.filter(
-        owner=request.user
-    ).filter(
+    files = File.objects.filter(owner=request.user).filter(
         Q(name__icontains=query) | Q(original_name__icontains=query)
     )[:10]
     

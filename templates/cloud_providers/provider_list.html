@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}Cloud Providers - CloudStorage Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Cloud Providers</h1>
+    </div>
+    
+    <!-- Connected Providers Summary -->
+    {% if connections %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="m-0 font-weight-bold text-primary">Connected Accounts</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for connection in connections %}
+                <div class="col-md-6 col-lg-3 mb-3">
+                    <div class="card h-100 provider-card">
+                        <div class="card-body text-center">
+                            <i class="bi bi-cloud provider-icon 
+                                {% if connection.provider.name == 'google_drive' %}provider-google
+                                {% elif connection.provider.name == 'dropbox' %}provider-dropbox
+                                {% elif connection.provider.name == 'onedrive' %}provider-onedrive
+                                {% elif connection.provider.name == 'mega' %}provider-mega
+                                {% endif %}"></i>
+                            <h5 class="mt-3 mb-1">{{ connection.provider.display_name }}</h5>
+                            <p class="text-muted small">{{ connection.provider_email|default:"Connected" }}</p>
+                            
+                            <div class="mt-3">
+                                <div class="progress progress-sm">
+                                    <div class="progress-bar 
+                                        {% if connection.usage_percentage > 90 %}bg-danger
+                                        {% elif connection.usage_percentage > 70 %}bg-warning
+                                        {% else %}bg-success{% endif %}" 
+                                        role="progressbar" 
+                                        style="width: {{ connection.usage_percentage }}%">
+                                    </div>
+                                </div>
+                                <small class="text-muted">
+                                    {{ connection.used_storage|filesizeformat }} / {{ connection.total_storage|filesizeformat }}
+                                </small>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <a href="{% url 'cloud_providers:connection_detail' connection.id %}" class="btn btn-sm btn-outline-primary">Details</a>
+                                <a href="{% url 'cloud_providers:disconnect' connection.id %}" class="btn btn-sm btn-outline-danger">Disconnect</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Available Providers -->
+    <div class="card">
+        <div class="card-header">
+            <h6 class="m-0 font-weight-bold text-primary">Available Providers</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for provider in providers %}
+                <div class="col-md-6 col-lg-3 mb-3">
+                    <div class="card h-100 provider-card">
+                        <div class="card-body text-center">
+                            <i class="bi {{ provider.icon }} provider-icon 
+                                {% if provider.name == 'google_drive' %}provider-google
+                                {% elif provider.name == 'dropbox' %}provider-dropbox
+                                {% elif provider.name == 'onedrive' %}provider-onedrive
+                                {% elif provider.name == 'mega' %}provider-mega
+                                {% endif %}"></i>
+                            <h5 class="mt-3 mb-1">{{ provider.display_name }}</h5>
+                            <p class="text-muted small">{{ provider.description|default:"Connect to sync files" }}</p>
+                            
+                            {% with connection=connections|dictsort:"provider.id" %}
+                            {% if provider not in connections.values_list %}
+                            <a href="{% url 'cloud_providers:connect' provider.name %}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-link me-1"></i> Connect
+                            </a>
+                            {% else %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Connected</span>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Provider Information -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="bi bi-info-circle me-2"></i>About Cloud Providers
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="bi bi-google provider-google me-2"></i>Google Drive</h6>
+                    <p class="small text-muted">15 GB free storage. Great for documents, photos, and videos. Integrates seamlessly with Google Workspace.</p>
+                </div>
+                <div class="col-md-6">
+                    <h6><i class="bi bi-dropbox provider-dropbox me-2"></i>Dropbox</h6>
+                    <p class="small text-muted">2 GB free storage. Excellent for file sharing and collaboration. Reliable sync across devices.</p>
+                </div>
+                <div class="col-md-6">
+                    <h6><i class="bi bi-microsoft provider-onedrive me-2"></i>OneDrive</h6>
+                    <p class="small text-muted">5 GB free storage. Best for Microsoft Office users. Tight integration with Windows and Office 365.</p>
+                </div>
+                <div class="col-md-6">
+                    <h6><i class="bi bi-cloud provider-mega me-2"></i>MEGA</h6>
+                    <p class="small text-muted">20 GB free storage. End-to-end encryption for maximum privacy. Great for sensitive files.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile - CloudStorage Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">My Profile</h1>
+    </div>
+    
+    <div class="row">
+        <!-- Profile Info -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Profile Information</h6>
+                </div>
+                <div class="card-body text-center">
+                    <img class="img-profile rounded-circle mb-3" src="{% if user.profile.avatar %}{{ user.profile.avatar.url }}{% else %}https://ui-avatars.com/api/?name={{ user.username }}&background=4e73df&color=fff&size=150{% endif %}" width="150" height="150">
+                    <h5 class="card-title">{{ user.get_full_name|default:user.username }}</h5>
+                    <p class="card-text text-muted">{{ user.email }}</p>
+                    <p class="card-text"><small class="text-muted">Member since {{ user.date_joined|date:"F Y" }}</small></p>
+                </div>
+            </div>
+            
+            <!-- Storage Usage -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Storage Usage</h6>
+                </div>
+                <div class="card-body">
+                    <h4 class="small font-weight-bold">
+                        Local Storage 
+                        <span class="float-right">{{ profile.used_storage_gb|floatformat:2 }} GB / {{ profile.storage_quota_gb }} GB</span>
+                    </h4>
+                    <div class="progress mb-4 progress-sm">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ profile.storage_percentage }}%"></div>
+                    </div>
+                    
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h5 class="font-weight-bold">{{ total_files }}</h5>
+                            <small class="text-muted">Files</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="font-weight-bold">{{ total_folders }}</h5>
+                            <small class="text-muted">Folders</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Edit Profile -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Edit Profile</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Username</label>
+                                {{ u_form.username }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                {{ u_form.email }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">First Name</label>
+                                {{ u_form.first_name }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Last Name</label>
+                                {{ u_form.last_name }}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Bio</label>
+                            {{ p_form.bio }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Profile Picture</label>
+                            {{ p_form.avatar }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Connected Cloud Accounts -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Connected Cloud Accounts</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for connection in user.cloud_connections.all %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-cloud fs-2 me-3 
+                                            {% if connection.provider.name == 'google_drive' %}provider-google
+                                            {% elif connection.provider.name == 'dropbox' %}provider-dropbox
+                                            {% elif connection.provider.name == 'onedrive' %}provider-onedrive
+                                            {% elif connection.provider.name == 'mega' %}provider-mega
+                                            {% endif %}"></i>
+                                        <div>
+                                            <h6 class="mb-0">{{ connection.provider.display_name }}</h6>
+                                            <small class="text-muted">{{ connection.provider_email|default:"Connected" }}</small>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <small>Storage: {{ connection.used_storage|filesizeformat }} / {{ connection.total_storage|filesizeformat }}</small>
+                                        <div class="progress progress-sm">
+                                            <div class="progress-bar" role="progressbar" style="width: {{ connection.usage_percentage }}%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12 text-center py-4">
+                            <p class="text-muted">No cloud accounts connected yet.</p>
+                            <a href="{% url 'cloud_providers:provider_list' %}" class="btn btn-primary btn-sm">Connect Now</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

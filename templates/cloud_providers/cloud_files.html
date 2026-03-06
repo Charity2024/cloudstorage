@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Cloud Files - CloudStorage Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Cloud Files</h1>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <select name="provider" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Providers</option>
+                        {% for provider in providers %}
+                        <option value="{{ provider.name }}" {% if request.GET.provider == provider.name %}selected{% endif %}>{{ provider.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Status</option>
+                        <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="failed" {% if request.GET.status == 'failed' %}selected{% endif %}>Failed</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Cloud Uploads Table -->
+    <div class="card">
+        <div class="card-header">
+            <h6 class="m-0 font-weight-bold text-primary">Uploaded Files</h6>
+        </div>
+        <div class="card-body">
+            {% if uploads %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Provider</th>
+                            <th>Status</th>
+                            <th>Uploaded</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for upload in uploads %}
+                        <tr>
+                            <td>
+                                <i class="bi {{ upload.file.get_icon_class }} me-2"></i>
+                                {{ upload.file.name|truncatechars:40 }}
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ upload.connection.provider.display_name }}</span>
+                            </td>
+                            <td>
+                                {% if upload.status == 'completed' %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Completed</span>
+                                {% elif upload.status == 'pending' %}
+                                <span class="badge bg-warning"><i class="bi bi-clock me-1"></i> Pending</span>
+                                {% elif upload.status == 'uploading' %}
+                                <span class="badge bg-info"><i class="bi bi-arrow-up-circle me-1"></i> Uploading</span>
+                                {% elif upload.status == 'failed' %}
+                                <span class="badge bg-danger"><i class="bi bi-exclamation-circle me-1"></i> Failed</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ upload.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ upload.created_at|date:"M d, Y H:i" }}</td>
+                            <td>
+                                {% if upload.provider_file_url %}
+                                <a href="{{ upload.provider_file_url }}" target="_blank" class="btn btn-sm btn-outline-primary" title="View in Cloud">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                                {% endif %}
+                                <a href="{{ upload.file.get_absolute_url }}" class="btn btn-sm btn-outline-info" title="View File">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-cloud-slash fs-1 text-muted"></i>
+                <p class="text-muted mt-3">No cloud uploads found.</p>
+                <a href="{% url 'storage:file_upload' %}" class="btn btn-primary">Upload Files</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

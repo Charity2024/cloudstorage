@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - CloudStorage Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
+        <a href="{% url 'storage:file_upload' %}" class="d-none d-sm-inline-block btn btn-primary shadow-sm">
+            <i class="bi bi-cloud-upload me-2"></i> Upload Files
+        </a>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card primary h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Files</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_files }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-files fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card success h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Storage Used</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_size|filesizeformat }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-hdd fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card info h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Cloud Providers</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ connections_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-clouds fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card warning h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Compression Savings</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ savings|filesizeformat }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-arrow-down-circle fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Content Row -->
+    <div class="row">
+        <!-- File Type Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">File Types</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="fileTypeChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Weekly Uploads Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Weekly Uploads</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="weeklyUploadsChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Files & Cloud Status -->
+    <div class="row">
+        <!-- Recent Files -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Files</h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_files %}
+                    <div class="list-group list-group-flush">
+                        {% for file in recent_files %}
+                        <a href="{{ file.get_absolute_url }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <i class="bi {{ file.get_icon_class }} file-icon {{ file.file_type }} me-3"></i>
+                                <div>
+                                    <h6 class="mb-0">{{ file.name|truncatechars:30 }}</h6>
+                                    <small class="text-muted">{{ file.created_at|timesince }} ago</small>
+                                </div>
+                            </div>
+                            <span class="badge bg-primary rounded-pill">{{ file.file_size|filesizeformat }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted py-4">No files uploaded yet.</p>
+                    {% endif %}
+                    <div class="text-center mt-3">
+                        <a href="{% url 'storage:file_list' %}" class="btn btn-sm btn-primary">View All Files</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Cloud Storage Status -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Cloud Storage Status</h6>
+                </div>
+                <div class="card-body">
+                    {% if connections %}
+                    <div class="list-group list-group-flush">
+                        {% for connection in connections %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-cloud fs-4 me-2 
+                                        {% if connection.provider.name == 'google_drive' %}provider-google
+                                        {% elif connection.provider.name == 'dropbox' %}provider-dropbox
+                                        {% elif connection.provider.name == 'onedrive' %}provider-onedrive
+                                        {% elif connection.provider.name == 'mega' %}provider-mega
+                                        {% endif %}"></i>
+                                    <span class="font-weight-bold">{{ connection.provider.display_name }}</span>
+                                </div>
+                                <span class="badge bg-success">Connected</span>
+                            </div>
+                            <div class="progress progress-sm mb-1">
+                                <div class="progress-bar" role="progressbar" style="width: {{ connection.usage_percentage }}%"></div>
+                            </div>
+                            <small class="text-muted">{{ connection.used_storage|filesizeformat }} / {{ connection.total_storage|filesizeformat }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-cloud-slash fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">No cloud providers connected</p>
+                        <a href="{% url 'cloud_providers:provider_list' %}" class="btn btn-primary btn-sm">Connect Now</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Activity</h6>
+                </div>
+                <div class="card-body">
+                    {% if activities %}
+                    <div class="activity-list">
+                        {% for activity in activities|slice:":10" %}
+                        <div class="activity-item d-flex align-items-center">
+                            <div class="icon-circle bg-{{ activity.activity_type }} me-3" style="width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <i class="bi 
+                                    {% if activity.activity_type == 'upload' %}bi-cloud-upload
+                                    {% elif activity.activity_type == 'download' %}bi-download
+                                    {% elif activity.activity_type == 'delete' %}bi-trash
+                                    {% elif activity.activity_type == 'cloud_upload' %}bi-cloud-check
+                                    {% else %}bi-info{% endif %}
+                                    text-white"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <p class="mb-0">{{ activity.description }}</p>
+                                <small class="text-muted">{{ activity.created_at|timesince }} ago</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted py-4">No recent activity.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // File Type Chart
+    var ctx = document.getElementById('fileTypeChart').getContext('2d');
+    var fileTypeChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ file_type_labels|safe }},
+            datasets: [{
+                data: {{ file_type_data|safe }},
+                backgroundColor: ['#1cc88a', '#e74a3b', '#4e73df', '#f6c23e', '#858796', '#36b9cc'],
+                hoverBackgroundColor: ['#17a673', '#d52a1a', '#2e59d9', '#dda20a', '#6e707e', '#2a96a5'],
+                hoverBorderColor: "rgba(234, 236, 244, 1)",
+            }],
+        },
+        options: {
+            maintainAspectRatio: false,
+            tooltips: {
+                backgroundColor: "rgb(255,255,255)",
+                bodyFontColor: "#858796",
+                borderColor: '#dddfeb',
+                borderWidth: 1,
+                xPadding: 15,
+                yPadding: 15,
+                displayColors: false,
+                caretPadding: 10,
+            },
+            legend: {
+                display: true,
+                position: 'bottom'
+            },
+            cutoutPercentage: 70,
+        },
+    });
+    
+    // Weekly Uploads Chart
+    var ctx2 = document.getElementById('weeklyUploadsChart').getContext('2d');
+    var weeklyUploadsChart = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: {{ daily_labels|safe }},
+            datasets: [{
+                label: 'Uploads',
+                data: {{ daily_uploads|safe }},
+                backgroundColor: '#4e73df',
+                hoverBackgroundColor: '#2e59d9',
+                borderColor: '#4e73df',
+                borderWidth: 1
+            }],
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true,
+                        precision: 0
+                    }
+                }]
+            },
+            legend: {
+                display: false
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

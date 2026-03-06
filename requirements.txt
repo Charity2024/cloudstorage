@@ -1,0 +1,35 @@
+# Django & Core
+django>=4.2.0,<5.0
+django-crispy-forms>=2.0
+crispy-bootstrap5>=0.7
+python-dotenv>=1.0.0
+Pillow>=10.0.0
+celery>=5.3.0
+redis>=4.6.0
+
+# Cloud Storage APIs
+google-api-python-client>=2.95.0
+google-auth-httplib2>=0.1.1
+google-auth-oauthlib>=1.0.0
+mega.py>=1.0.8
+onedrivesdk>=1.1.0
+dropbox>=11.36.0
+boto3>=1.28.0  # For AWS S3 (optional)
+
+# File Monitoring & Compression
+watchdog>=3.0.0
+python-magic>=0.4.27
+tqdm>=4.65.0
+requests>=2.31.0
+
+# Database
+psycopg2-binary>=2.9.7  # For PostgreSQL on production
+
+# Deployment
+gunicorn>=21.2.0
+whitenoise>=6.5.0
+dj-database-url>=2.0.0
+
+# Utilities
+python-dateutil>=2.8.2
+pytz>=2023.3

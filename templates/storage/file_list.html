@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}My Files - CloudStorage Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">My Files</h1>
+        <div>
+            <a href="{% url 'storage:folder_create' %}" class="btn btn-secondary btn-sm me-2">
+                <i class="bi bi-folder-plus me-1"></i> New Folder
+            </a>
+            <a href="{% url 'storage:file_upload' %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-cloud-upload me-1"></i> Upload
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <input type="text" name="q" class="form-control" placeholder="Search files..." value="{{ query }}">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select name="type" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Types</option>
+                        <option value="image" {% if file_type == 'image' %}selected{% endif %}>Images</option>
+                        <option value="video" {% if file_type == 'video' %}selected{% endif %}>Videos</option>
+                        <option value="audio" {% if file_type == 'audio' %}selected{% endif %}>Audio</option>
+                        <option value="document" {% if file_type == 'document' %}selected{% endif %}>Documents</option>
+                        <option value="archive" {% if file_type == 'archive' %}selected{% endif %}>Archives</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="sort" class="form-select" onchange="this.form.submit()">
+                        <option value="-created_at" {% if sort_by == '-created_at' %}selected{% endif %}>Newest First</option>
+                        <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Oldest First</option>
+                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name (A-Z)</option>
+                        <option value="-file_size" {% if sort_by == '-file_size' %}selected{% endif %}>Size (Large-Small)</option>
+                    </select>
+                </div>
+                <div class="col-md-2 text-end">
+                    <small class="text-muted">{{ total_files }} files</small>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Folders -->
+    {% if folders %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="m-0 font-weight-bold text-primary">Folders</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for folder in folders %}
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card folder-card h-100">
+                        <div class="card-body text-center">
+                            <a href="{{ folder.get_absolute_url }}" class="text-decoration-none">
+                                <i class="bi bi-folder-fill fs-1 text-warning"></i>
+                                <h6 class="mt-2 mb-0 text-dark">{{ folder.name }}</h6>
+                                <small class="text-muted">{{ folder.file_count }} items</small>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Files Grid -->
+    <div class="card">
+        <div class="card-header">
+            <h6 class="m-0 font-weight-bold text-primary">Files</h6>
+        </div>
+        <div class="card-body">
+            {% if files %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Size</th>
+                            <th>Compressed</th>
+                            <th>Cloud Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for file in files %}
+                        <tr>
+                            <td>
+                                <a href="{{ file.get_absolute_url }}" class="text-decoration-none">
+                                    <i class="bi {{ file.get_icon_class }} file-icon {{ file.file_type }} me-2"></i>
+                                    {{ file.name|truncatechars:40 }}
+                                </a>
+                            </td>
+                            <td><span class="badge bg-secondary">{{ file.get_file_type_display }}</span></td>
+                            <td>{{ file.file_size|filesizeformat }}</td>
+                            <td>
+                                {% if file.is_compressed %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check"></i> {{ file.compression_percentage|floatformat:1 }}%
+                                </span>
+                                {% else %}
+                                <span class="badge bg-light text-dark">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if file.upload_status == 'completed' %}
+                                <span class="badge bg-success"><i class="bi bi-cloud-check"></i> Synced</span>
+                                {% elif file.upload_status == 'uploading' %}
+                                <span class="badge bg-info"><i class="bi bi-cloud-arrow-up"></i> Uploading</span>
+                                {% elif file.upload_status == 'failed' %}
+                                <span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> Failed</span>
+                                {% else %}
+                                <span class="badge bg-light text-dark">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ file.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'storage:file_download' file.pk %}" class="btn btn-outline-primary" title="Download">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                    <a href="{{ file.get_absolute_url }}" class="btn btn-outline-info" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ file.pk }}" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Delete Modal -->
+                                <div class="modal fade" id="deleteModal{{ file.pk }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Delete File</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                Are you sure you want to delete "{{ file.name }}"?
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <form method="post" action="{% url 'storage:file_delete' file.pk %}">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if file_type %}&type={{ file_type }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% else %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if file_type %}&type={{ file_type }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">{{ num }}</a></li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if file_type %}&type={{ file_type }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-folder2-open fs-1 text-muted"></i>
+                <p class="text-muted mt-3">No files found.</p>
+                <a href="{% url 'storage:file_upload' %}" class="btn btn-primary">Upload your first file</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
